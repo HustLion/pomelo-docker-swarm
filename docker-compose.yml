@@ -1,0 +1,72 @@
+## 开启 swarm，如果已经开了就不用开了否则error
+# docker swarm init
+## 部署与更新部署
+# docker stack deploy -c docker-compose.yml pomelo-swarm
+#
+## 看状态
+# docker stack ps pomelo-swarm
+### 服务情况
+# docker service ls
+#
+## 进入 container
+### 找到 container, 如果没开成功用 docker container ls -a 看全部
+# docker container ls
+### 进入 container 的 bash
+# docker exec -it e9410ee182bd /bin/bash
+#
+## 看 ip
+# docker network ls
+# docker network inspect pomelo-swarm_pomelo-net
+
+
+version: '3.1'
+
+services:
+
+  # visit: http://127.0.0.1:33001/
+  pomelo:
+    image: hustlion/pomelo:0.1.1
+    deploy:
+      restart_policy:
+          condition: on-failure
+    ports:
+      - 33001:3001
+      - 33014:33014
+      - 33050:33050
+      - 33051:33051
+      - 33052:33052
+    volumes:
+      - "/Users/hustlion/tmp/docker/tmpData:/data"
+      - "/Users/hustlion/hugo/game/pomelo:/code"
+    networks:
+      - pomelo-net
+
+  db:
+    image: mysql:5.6.39
+    deploy:
+      restart_policy:
+          condition: on-failure
+    ports:
+      - 33306:3306
+    volumes:
+      - "/Users/hustlion/tmp/docker/mysql-5.6.39-data:/var/lib/mysql"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    networks:
+      - pomelo-net
+
+  # visit: http://localhost:38080/
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "38080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - pomelo-net
+
+networks:
+  pomelo-net:
